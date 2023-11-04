@@ -8,7 +8,6 @@ const inputDuration = document.querySelector(".form__input--duration");
 const inputTemp = document.querySelector(".form__input--temp");
 const inputClimb = document.querySelector(".form__input--climb");
 
-const workouts = [];
 let type;
 
 class Workout {
@@ -22,7 +21,13 @@ class Workout {
   }
 
   _setDescription() {
-    if(this.type === "running") this.description = 
+    this.type === "running"
+      ? (this.description = `Running ${new Intl.DateTimeFormat("pl-PL").format(
+          this.date
+        )}`)
+      : (this.description = `Cycling ${new Intl.DateTimeFormat("pl-PL").format(
+          this.date
+        )}`);
   }
 }
 
@@ -32,6 +37,7 @@ class Running extends Workout {
     super(coords, distance, duration);
     this.temp = temp;
     this.pace = this.duration / this.distance;
+    this._setDescription();
   }
 }
 
@@ -41,12 +47,14 @@ class Cycling extends Workout {
     super(coords, distance, duration);
     this.climb = climb;
     this.speed = this.distance / this.duration;
+    this._setDescription();
   }
 }
 
 class App {
   #map;
   #mapEvent;
+  #workouts = [];
 
   constructor() {
     this._getPosition();
@@ -54,6 +62,11 @@ class App {
     form.addEventListener("submit", this._newWorkout.bind(this));
     //Toggle climb field
     inputType.addEventListener("change", this._toggleClimbField.bind(this));
+    //Center map on click
+    containerWorkouts.addEventListener(
+      "click",
+      this._moveToWorkoutOnMap.bind(this)
+    );
   }
 
   _getPosition() {
@@ -143,7 +156,7 @@ class App {
     }
 
     //Push new obj to workout array
-    workouts.push(workout);
+    this.#workouts.push(workout);
 
     //Display on the map
     this._displayOnMap(workout);
@@ -169,7 +182,9 @@ class App {
       .addTo(this.#map)
       .bindPopup(
         L.popup({
-          content: "test",
+          content:
+            `${workout.type === "running" ? "🏃" : "🚵‍♂️"} ` +
+            workout.description,
           autoClose: false,
           closeOnClick: false,
           className: `${workout.type}-popup`,
@@ -179,20 +194,63 @@ class App {
   }
 
   _displayOnSidebar(workout) {
-    html = `<li class="workout workout--${workout.type}" data-id="${
+    let html = `<li class="workout workout--${workout.type}" data-id="${
       workout.id
     }">
-    <h2 class="workout__title">${workout._setDescription()}</h2>
+    <h2 class="workout__title">${workout.description}</h2>
     <div class="workout__details">
-      <span class="workout__icon">🏃</span>
-      <span class="workout__value">5.0</span>
+      <span class="workout__icon">${
+        workout.type === "running" ? "🏃" : "🚵‍♂️"
+      }</span>
+      <span class="workout__value">${workout.distance}</span>
       <span class="workout__unit">km</span>
     </div>
     <div class="workout__details">
       <span class="workout__icon">⏱</span>
-      <span class="workout__value">21</span>
+      <span class="workout__value">${workout.duration}</span>
       <span class="workout__unit">min</span>
     </div>`;
+
+    if (workout.type === "running") {
+      html += `<div class="workout__details">
+      <span class="workout__icon">📏⏱</span>
+      <span class="workout__value">${workout.pace}</span>
+      <span class="workout__unit">m/min</span>
+    </div>
+    <div class="workout__details">
+      <span class="workout__icon">👟⏱</span>
+      <span class="workout__value">${workout.temp}</span>
+      <span class="workout__unit">step/min</span>
+    </div>
+    </li>`;
+    }
+
+    if (workout.type === "cycling") {
+      html += `<div class="workout__details">
+      <span class="workout__icon">📏⏱</span>
+      <span class="workout__value">${workout.speed}</span>
+      <span class="workout__unit">km/h</span>
+    </div>
+    <div class="workout__details">
+      <span class="workout__icon">🏔</span>
+      <span class="workout__value">${workout.climb}</span>
+      <span class="workout__unit">m</span>
+    </div>
+    </li>`;
+    }
+
+    form.insertAdjacentHTML("afterend", html);
+  }
+
+  _moveToWorkoutOnMap(e) {
+    const workoutElem = e.target.closest(".workout");
+    if (!workoutElem) return;
+
+    const workout = this.#workouts.find(
+      (item) => item.id === workoutElem.dataset.id
+    );
+
+    this.#map.setView(workout.coords, 13);
   }
 }
 
