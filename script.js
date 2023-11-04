@@ -58,6 +58,9 @@ class App {
 
   constructor() {
     this._getPosition();
+
+    this._getWorkoutsFromLocalStorage();
+
     //Submit new workout
     form.addEventListener("submit", this._newWorkout.bind(this));
     //Toggle climb field
@@ -93,6 +96,11 @@ class App {
     }).addTo(this.#map);
 
     this.#map.on("click", this._showForm.bind(this));
+
+    //load markers from localstorage
+    this.#workouts.forEach((workout) => {
+      this._displayOnMap(workout);
+    });
   }
 
   _showForm(e) {
@@ -175,6 +183,9 @@ class App {
       inputTemp.value =
         "";
     form.classList.add("hidden");
+
+    //refresh localstorage
+    this._addWorkoutsToLocalStorage();
   }
 
   _displayOnMap(workout) {
@@ -251,6 +262,25 @@ class App {
     );
 
     this.#map.setView(workout.coords, 13);
+  }
+
+  _addWorkoutsToLocalStorage() {
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  _getWorkoutsFromLocalStorage() {
+    const data = JSON.parse(localStorage.getItem("workouts"));
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach((workout) => {
+      this._displayOnSidebar(workout);
+    });
+  }
+
+  resetLocalStroge() {
+    localStorage.removeItem("workouts");
   }
 }
 
