@@ -114,6 +114,8 @@ class App {
     inputTemp.closest(".form__row").classList.toggle("form__row--hidden");
   }
 
+  //a
+
   _newWorkout(e) {
     e.preventDefault();
 
